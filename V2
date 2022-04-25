@@ -1,0 +1,93 @@
+from http import server
+import smtplib
+
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+from email.mime.base import MIMEBase
+from email import encoders
+
+import PySimpleGUI as sg
+from tkinter import filedialog
+
+
+
+# Layout
+layout = [
+    [sg.Text('Host '), sg.Input(key='host',size=(30))],
+    [sg.Text('Porta'), sg.Input(key='port',size=(5))],
+    [sg.Text('Login'), sg.Input(key='login',size=(30))],
+    [sg.Text('Senha'), sg.Input(key='senha',password_char='*' ,size=(15))],
+    [sg.Text('Email'), sg.Input(key='email',size=(30))],
+    [sg.Button('Enviar')],
+    [sg.Output(size=(50,20))]
+]
+
+#Janela
+
+janela = sg.Window('Enviar Email', layout)
+
+# Ler arquivos
+
+while True:
+    eventos, valores = janela.read()
+    if eventos == sg.WINDOW_CLOSED:
+        break
+    host  = valores['host']
+    porta = valores['port']
+    login = valores['login']
+    senha = valores['senha']
+    nome  = valores['email']
+    print(nome)
+
+    # Startar o servidor SMTP
+
+    host    = host
+    port    = porta
+    login   = login # E-mail de envio
+    senha   = senha # Senha do email
+
+    server = smtplib.SMTP(host,port)
+
+    server.ehlo()
+    server.starttls()
+    server.login(login,senha)
+
+    #email_des = nome
+
+        
+    # Montando E-mail - Corpo do e-mail quebrar em base HTML
+
+    corpo = "" # corpo do e-mail editado em HTML pelo editor de código
+
+    email_msg = MIMEMultipart()
+    email_msg['From']    = login 
+    email_msg['To']      = nome #E-mail de destino digitado pelo usuário
+    email_msg['Subject'] = "" # Título do E-mail editado pelo editor de código
+    email_msg.attach(MIMEText(corpo,'html'))
+
+    # caminho do arquivo que vai ser anexado  - agora o usuário pode escolher o arquivo
+    filenames = filedialog.askopenfilenames()
+    str = ''.join(filenames)
+    attachment = open(str, 'rb')
+    print("Arquivo anexado")
+    
+    # Convertendo para base 64 padrão de envio de e-mail
+    att = MIMEBase('application', 'octet-stream')
+    att.set_payload(attachment.read())
+    encoders.encode_base64(att)
+
+    # Nome do arquivo anexado
+    att.add_header('Content-Disposition', f'attachment; filename=fatura_pf_plano.pdf')
+    attachment.close()
+    email_msg.attach(att)
+
+    #Enviar o EMAIL
+
+    server.sendmail(email_msg['From'], email_msg['To'],email_msg.as_string())
+
+    server.quit()
+
+
+    print("== Email Enviado ==")
+
